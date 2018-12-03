@@ -24,10 +24,11 @@ ifeq ($(wildcard $(FOUNDATION_PATH)),)
 $(error $(FOUNDATION_PATH) does not exist)
 endif
 
+# rex_do 2018-12-3
 ################################################################################
 # Targets
 ################################################################################
-all: arm-tf edk2 linux optee-os optee-client xtest helloworld
+all: arm-tf edk2 linux optee-os optee-client xtest helloworld bootsecureos
 clean: arm-tf-clean busybox-clean edk2-clean optee-os-clean \
 	optee-client-clean
 
@@ -128,6 +129,15 @@ xtest: xtest-common
 xtest-clean: xtest-clean-common
 
 xtest-patch: xtest-patch-common
+
+#rex_do 2018-12-3
+################################################################################
+# boot_secure_os
+################################################################################
+bootsecureos: bootsecureos-common
+
+bootsecureos-clean: bootsecureos-clean-common
+
 
 ################################################################################
 # hello_world
