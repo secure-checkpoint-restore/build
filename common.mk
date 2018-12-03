@@ -16,6 +16,8 @@ OPTEE_CLIENT_PATH		?= $(ROOT)/optee_client
 OPTEE_CLIENT_EXPORT		?= $(OPTEE_CLIENT_PATH)/out/export
 OPTEE_TEST_PATH			?= $(ROOT)/optee_test
 OPTEE_TEST_OUT_PATH		?= $(ROOT)/optee_test/out
+#rex_do 2018-12-3
+BOOTSECUREOS_PATH		?= $(ROOT)/boot_secure_os
 HELLOWORLD_PATH			?= $(ROOT)/hello_world
 BENCHMARK_APP_PATH		?= $(ROOT)/optee_benchmark
 
@@ -273,7 +275,8 @@ OPTEE_OS_CLEAN_COMMON_FLAGS ?= $(OPTEE_OS_COMMON_EXTRA_FLAGS)
 ifeq ($(CFG_TEE_BENCHMARK),y)
 optee-os-clean-common: benchmark-app-clean-common
 endif
-optee-os-clean-common: xtest-clean helloworld-clean
+#rex_do 2018-12-3
+optee-os-clean-common: xtest-clean helloworld-clean bootsecureos-clean
 	$(MAKE) -C $(OPTEE_OS_PATH) $(OPTEE_OS_CLEAN_COMMON_FLAGS) clean
 
 OPTEE_CLIENT_COMMON_FLAGS ?= CROSS_COMPILE=$(CROSS_COMPILE_NS_USER) \
@@ -312,6 +315,23 @@ XTEST_PATCH_COMMON_FLAGS ?= $(XTEST_COMMON_FLAGS)
 
 xtest-patch-common:
 	$(MAKE) -C $(OPTEE_TEST_PATH) $(XTEST_PATCH_COMMON_FLAGS) patch
+
+#rex_do 2018-12-3
+################################################################################
+# boot_secure_os
+################################################################################
+BOOTSECUREOS_COMMON_FLAGS ?= HOST_CROSS_COMPILE=$(CROSS_COMPILE_NS_USER)\
+        TA_CROSS_COMPILE=$(CROSS_COMPILE_S_USER) \
+        TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR) \
+        TEEC_EXPORT=$(OPTEE_CLIENT_EXPORT)
+
+bootsecureos-common: optee-os optee-client
+	$(MAKE) -C $(BOOTSECUREOS_PATH) $(BOOTSECUREOS_COMMON_FLAGS)
+
+BOOTSECUREOS_CLEAN_COMMON_FLAGS ?= TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR)
+
+bootsecureos-clean-common: 
+	$(MAKE) -C $(BOOTSECUREOS_PATH) $(BOOTSECUREOS_CLEAN_COMMON_FLAGS) clean
 
 ################################################################################
 # hello_world
@@ -362,7 +382,8 @@ ifeq ($(CFG_TEE_BENCHMARK),y)
 filelist-tee-common: benchmark-app
 endif
 filelist-tee-common: fl:=$(GEN_ROOTFS_FILELIST)
-filelist-tee-common: optee-client xtest helloworld
+#rex_do 2018-12-3
+filelist-tee-common: optee-client xtest helloworld bootsecureos
 	@echo "# filelist-tee-common /start" 				> $(fl)
 	@echo "dir /lib/optee_armtz 755 0 0" 				>> $(fl)
 	@echo "# xtest / optee_test" 					>> $(fl)
@@ -378,6 +399,14 @@ filelist-tee-common: optee-client xtest helloworld
 			"$(HELLOWORLD_PATH)/ta/8aaaf200-2450-11e4-abe2-0002a5d5c51b.ta" \
 			"444 0 0" 					>> $(fl); \
 	fi
+	#rex_do 2018-12-3
+	@if [ -e $(BOOTSECUREOS_PATH)/host/boot_secure_os ]; then \
+                echo "file /bin/boot_secure_os" \
+                        "$(BOOTSECUREOS_PATH)/host/boot_secure_os 755 0 0"   >> $(fl); \
+                echo "file /lib/optee_armtz/cafe03b2-aa3c-4536-bbe4-fc78716d0505.ta" \
+                        "$(BOOTSECUREOS_PATH)/ta/cafe03b2-aa3c-4536-bbe4-fc78716d0505.ta" \
+                        "444 0 0"                                       >> $(fl); \
+        fi
 	@if [ -e $(BENCHMARK_APP_PATH)/benchmark ]; then \
 		echo "file /bin/benchmark" \
 			"$(BENCHMARK_APP_PATH)/benchmark 755 0 0"	>> $(fl); \
